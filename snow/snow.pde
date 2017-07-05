@@ -8,8 +8,10 @@ particle[] snowflakes = new particle[particleCount];
 int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[maxZ+1];
-boolean windVisible = false;
-boolean debugVisible = false;
+boolean windVisible = true;
+boolean debugVisible = true;
+boolean debugOneLayer = true;
+int debugOneLayerTarget = 1;
 float windEffect = 0.25f;
 long lastMS = 0;
 int windChangeRateMS = 1500;
@@ -56,6 +58,10 @@ void draw() {
   
   // draw the noisemap for now
   if (windVisible) {
+
+    if (debugOneLayer)
+      visibleMap = debugOneLayerTarget;
+
     image(wind[visibleMap].mappy, 0, 0);
     if (millis() - lastMapMS > mapChangeRateMS) {
       visibleMap = visibleMap + 1 <= maxZ ? visibleMap + 1 : 1;
@@ -63,10 +69,12 @@ void draw() {
     }
 
     // draw small indicators on the side
+    /*
     for(int z = 1; z < maxZ; z++) {
-      image(wind[z].mappy, - (width / 10), z * (height / 10), width / 10, height / 10);
+      image(wind[z].mappy, width - (width / 10), z * (height / 10), width / 10, height / 10);
     }
-   
+    */
+
   }
     
   //  draw the background gradient
@@ -74,6 +82,9 @@ void draw() {
   // handle all physics and draw the snowflakes
   // for(particle snowflake : snowflakes) {
   for(int i = 0; i < particleCount; i++) {
+
+    if (debugOneLayer && snowflakes[i].zIndex != debugOneLayerTarget)
+      continue;
 
     float[] accel = wind[snowflakes[i].zIndex].getXY((int) snowflakes[i].x, (int) snowflakes[i].y);
     // particle.changeAccel( wind.getXY((int) snowflakes[i].x, (int) snowflakes[i].y );
@@ -94,6 +105,10 @@ void draw() {
   
   if (millis() - lastMS > windChangeRateMS) {
     for(int z = 1; z < maxZ; z++) {
+
+      if (debugOneLayer && z != debugOneLayerTarget)
+        continue;
+
       if (random(0,1) > .4) {
         println("ADD WIND TO " + z);
         wind[z].addWindArea();
