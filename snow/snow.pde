@@ -15,8 +15,10 @@ boolean debugOneLayer = true;
 int debugOneLayerTarget = 1;
 
 float windEffect = 0.25f;
-long lastMS = 0;
-int windChangeRateMS = 1500;
+long lastChangeMS = 0;
+long lastUpdateMS = 0;
+int windChangeRateMS = 1500; // how often do new wind effects come in?
+int windUpdateRateMS = 900; // how often do we apply shifts like fading / motion
 int visibleMap = 1;
 long lastMapMS = 0;
 long mapChangeRateMS = windChangeRateMS * 4;
@@ -52,7 +54,8 @@ void setup() {
     snowflakes[i] = spawn();
   }
 
-  lastMS = millis();
+  lastChangeMS = millis();
+  lastUpdateMS = millis();
 
 //addWindArea
 }
@@ -71,6 +74,7 @@ void draw() {
       visibleMap = debugOneLayerTarget;
 
     image(wind[visibleMap].mappy, 0, 0);
+
     if (millis() - lastMapMS > mapChangeRateMS) {
       visibleMap = visibleMap + 1 <= maxZ ? visibleMap + 1 : 1;
       lastMapMS = millis();
@@ -110,8 +114,21 @@ void draw() {
       snowflakes[i].backToTheTop();
     }
   }
+
+  if (millis() - lastUpdateMS > windUpdateRateMS) {
+    for(int z = 1; z < maxZ; z++) {
+
+      if (debugOneLayer && z != debugOneLayerTarget)
+        continue;
+
+      wind[z].fade();
+
+    }
+    
+    lastUpdateMS = millis();
+  }
   
-  if (millis() - lastMS > windChangeRateMS) {
+  if (millis() - lastChangeMS > windChangeRateMS) {
     for(int z = 1; z < maxZ; z++) {
 
       if (debugOneLayer && z != debugOneLayerTarget)
@@ -127,7 +144,7 @@ void draw() {
         wind[z].mappy.filter(INVERT); 
       }
     }
-    lastMS = millis();
+    lastChangeMS = millis();
   }
   
 }
@@ -144,11 +161,25 @@ particle spawn() {
 class noisemap {
 
   PImage mappy;
-  // PGraphics mappy;
-  
+  PImage fader;
+
   noisemap(int mapWidth, int mapHeight) {
     mappy = createImage(mapWidth, mapHeight, RGB);
+    fader = createImage(mapWidth, mapHeight, ARGB);
+
+    fillFader();
     fillMap();
+    
+  }
+  
+  void fillFader() {
+    
+    for(int x = 0; x < fader.width; x++) {
+      for(int y = 0; y < fader.height; y++) {
+        fader.set(x, y, color(128,128,128,13)); // roughly 5% opacity
+      }
+    }
+
   }
   
   void fillMap() {
@@ -164,6 +195,10 @@ class noisemap {
       addWindArea();
     }
 
+  }
+  
+  void fade() {
+    mappy.blend(fader, 0, 0, fader.width, fader.height, 0, 0, mappy.width, mappy.height, BLEND);
   }
   
   void addWindArea() {
