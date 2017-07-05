@@ -1,23 +1,27 @@
 
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 1000;
+int particleCount = 5000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
 int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[maxZ+1];
-boolean windVisible = true;
-boolean debugVisible = true;
+
+boolean windVisible   = true;
+boolean debugVisible  = true;
 boolean debugOneLayer = true;
 int debugOneLayerTarget = 1;
+
 float windEffect = 0.25f;
 long lastMS = 0;
 int windChangeRateMS = 1500;
 int visibleMap = 1;
 long lastMapMS = 0;
 long mapChangeRateMS = windChangeRateMS * 4;
+
+PImage snowflake;
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
@@ -38,6 +42,8 @@ void setup() {
   // size(640, 480);
   fullScreen();
 
+  snowflake = loadImage("snowflake1.png");
+
   for(int z = 1; z <= maxZ; z++) {
     wind[z] = new noisemap(width, height);
   }
@@ -55,10 +61,12 @@ void draw() {
   
   // clear the last frame
   background(0);
-  
+
   // draw the noisemap for now
   if (windVisible) {
 
+    imageMode(CORNER);
+    
     if (debugOneLayer)
       visibleMap = debugOneLayerTarget;
 
@@ -129,7 +137,7 @@ particle spawn() {
   float y = random(0 - height, 0);
   float z = fakeRandom(); // (0, maxZ);
 
-  float d = 6; // random(2, 10); // (float) fakeRandom();
+  float d = 30; // random(2, 10); // (float) fakeRandom();
   return new particle(x, y, z, d); 
 }
 
@@ -303,13 +311,14 @@ class particle {
     // noStroke();
     ellipseMode(RADIUS);
 
-    // d = (10 - this.z) * d;
     float distanceMult = (maxZ - this.z) / maxZ;
     float d2 = distanceMult * d;
 
     fill(255);
-    ellipse(x, y, d2, d2);
-    
+    // ellipse(x, y, d2, d2);
+    imageMode(CENTER);
+    image(snowflake, x, y, d2, d2);
+
     if (debugVisible) {
     
       fill(0);
