@@ -1,7 +1,7 @@
 
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 5000;
+int particleCount = 2000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -9,19 +9,19 @@ int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[maxZ+1];
 
-boolean windVisible   = true;
-boolean debugVisible  = true;
-boolean debugOneLayer = true;
+boolean windVisible     = true;
+boolean debugVisible    = false;
+boolean debugOneLayer   = false;
 int debugOneLayerTarget = 1;
 
-float windEffect = 0.25f;
-long lastChangeMS = 0;
-long lastUpdateMS = 0;
-int windChangeRateMS = 1500; // how often do new wind effects come in?
-int windUpdateRateMS = 900; // how often do we apply shifts like fading / motion
-int visibleMap = 1;
-long lastMapMS = 0;
-long mapChangeRateMS = windChangeRateMS * 4;
+float windEffect        = 0.25f;
+long lastChangeMS       = 0;
+long lastUpdateMS       = 0;
+int windChangeRateMS    = 1500; // how often do new wind effects come in?
+int windUpdateRateMS    = 200; // how often do we apply shifts like fading / motion
+int visibleMap          = 1;
+long lastMapMS          = 0;
+long mapChangeRateMS    = windChangeRateMS * 4;
 
 PImage snowflake;
 
@@ -47,7 +47,7 @@ void setup() {
   snowflake = loadImage("snowflake1.png");
 
   for(int z = 1; z <= maxZ; z++) {
-    wind[z] = new noisemap(width, height);
+    wind[z] = new noisemap(width, height, 16);
   }
 
   for(int i =0; i < particleCount; i++) {
@@ -70,10 +70,13 @@ void draw() {
 
     imageMode(CORNER);
     
-    if (debugOneLayer)
-      visibleMap = debugOneLayerTarget;
+    for(int z = 1; z < maxZ; z++) {
 
-    image(wind[visibleMap].mappy, 0, 0);
+      if (debugOneLayer && z != debugOneLayerTarget)
+        continue;
+
+      image(wind[z].mappy, 0, (z - 1) * wind[z].mappy.height);
+  }
 
     if (millis() - lastMapMS > mapChangeRateMS) {
       visibleMap = visibleMap + 1 <= maxZ ? visibleMap + 1 : 1;
@@ -122,9 +125,7 @@ void draw() {
         continue;
 
       wind[z].fade();
-
-    }
-    
+    }    
     lastUpdateMS = millis();
   }
   
@@ -163,15 +164,21 @@ class noisemap {
   PImage mappy;
   PImage fader;
 
-  noisemap(int mapWidth, int mapHeight) {
-    mappy = createImage(mapWidth, mapHeight, RGB);
-    fader = createImage(mapWidth, mapHeight, ARGB);
+  int scale = 1;
+
+  noisemap(int mapWidth, int mapHeight, int scale) {
+    
+    this.scale = scale;
+
+    // integer division - get xpos/ypos in our scale, eg: 1->8 1->16, whatev
+    mappy = createImage(mapWidth / scale, mapHeight / scale, RGB);
+    fader = createImage(mapWidth / scale, mapHeight / scale, ARGB);
 
     fillFader();
     fillMap();
-    
+
   }
-  
+
   void fillFader() {
     
     for(int x = 0; x < fader.width; x++) {
@@ -203,10 +210,10 @@ class noisemap {
   
   void addWindArea() {
 
-    int startX = (int) random(0, width);
-    int startY = (int) random(0, height);
-    int endX = (int) random(startX, width);
-    int endY = (int) random(startY, height);
+    int startX = (int) random(0, mappy.width);
+    int startY = (int) random(0, mappy.height);
+    int endX = (int) random(startX, mappy.width);
+    int endY = (int) random(startY, mappy.height);
 
     int colorR = color(random(0,255), random(0,255), 128);
 
@@ -222,13 +229,14 @@ class noisemap {
     float[] colorAtXY = {
       0, 0, 0 
     };
-    
+
+    x = x / scale;
+    y = y / scale;
+
     if (x < 0 || x >= mappy.width || y < 0 || y > mappy.height) {
       return colorAtXY;
     }
     
-    //mappy.loadPixels();
-    //color c = mappy.pixels[y * mappy.width + x];    // get(x, y);
     color c = mappy.get(x, y);
 
     int r = (c >> 16) & 0xFF;
@@ -274,7 +282,7 @@ class particle {
     this.z = z;
     this.d = d;
     
-    this.zIndex = (int) z; // relative to windMap needs int, fuck it
+    this.zIndex = (int) z; // relative to windMap needs int, fuck it (OR getZ() which handles range and then we can deal with out of bounds and whatever -> 
     
   }
 
