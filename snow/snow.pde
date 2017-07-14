@@ -11,6 +11,7 @@ int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[maxZ+1];
 
+boolean fullscreenMode  = false;
 boolean windVisible     = true;
 boolean debugVisible    = true;
 boolean debugOneLayer   = false;
@@ -52,23 +53,7 @@ void setup() {
 
   //snowflake = loadImage("snowflake1.png");
   snowflake = loadImage("snowflake2.png");
-  // this doesn't work, not sure why - NullPinterException FU
-  /*
-  snowflake = createImage(200,200, ARGB);
-  snowflakeSource = createGraphics(200,200); 
-  
-  println(snowflakeSource);
-
-   for(int i = 10; i > 0; i--) {
-    snowflakeSource.fill(255,255,255, ((200 - i) / 200) * 255);
-    snowflakeSource.ellipseMode(CENTER);
-    snowflakeSource.ellipse(100, 100, i, i);
-    
-  }
-
-  snowflakeSource.loadPixels();
-  snowflake = snowflakeSource.get();
-  */
+  // snowflake = loadImage("snowflake3.png");
 
   for(int z = 1; z <= maxZ; z++) {
     wind[z] = new noisemap(width, height, 16);
@@ -190,9 +175,11 @@ void keyPressed() {
     break;
     
     case 37: // left
+    ambientWind[0]--;
     break;
     
     case 39: // right
+    ambientWind[0]++;
     break;
     
     case 27: // esc ?
