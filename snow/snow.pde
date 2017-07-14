@@ -1,22 +1,31 @@
 
+/***
+ * Processing Snowfall Simulation
+ *
+ * @author Avery Brooks
+ * @copyright 2017
+ */
+
 // @todo OSC integration
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 2000;
+int particleCount = 5000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
 int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
-noisemap[] wind = new noisemap[maxZ+1];
+noisemap[] wind = new noisemap[ maxZ + 1 ];
 
-boolean fullscreenMode  = false;
-boolean windVisible     = true;
-boolean debugVisible    = true;
+boolean windVisible     = false;
+boolean debugVisible    = false;
 boolean debugOneLayer   = false;
 int debugOneLayerTarget = 1;
 
+boolean gravityEnabled  = true;
+
+boolean windFades       = false;
 float windEffect        = 0.25f;
 long lastChangeMS       = 0;
 long lastUpdateMS       = 0;
@@ -34,7 +43,7 @@ PGraphics snowflakeSource;
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
-  5,5,5,5,5,5,5,5,5,5,5,5,
+  // 5,5,5,5,5,5,5,5,5
   4,4,4,4,4,4,
   3,3,3,3,
   2,2,
@@ -52,15 +61,16 @@ void setup() {
   fullScreen();
 
   //snowflake = loadImage("snowflake1.png");
-  snowflake = loadImage("snowflake2.png");
-  // snowflake = loadImage("snowflake3.png");
+  // snowflake = loadImage("snowflake2.png");
+  snowflake = loadImage("snowflake3.png");
 
   for(int z = 1; z <= maxZ; z++) {
-    wind[z] = new noisemap(width, height, 16);
+    wind[z] = new noisemap(width, height, 32);
   }
 
   for(int i =0; i < particleCount; i++) {
-    snowflakes[i] = spawn();
+    snowflakes[i] = spawn(false);
+    snowflakes[i].id = i;
   }
 
   lastChangeMS = millis();
@@ -112,20 +122,16 @@ void draw() {
 
     snowflakes[i].changeAcceleration( xF, yF, zF );
     snowflakes[i].update();
-    
-    if (snowflakes[i].y <= 0)
-      println(i + " under 0");
-    
+
     snowflakes[i].draw();
 
     if (!snowflakes[i].inBoundsX(width)) {
-      // println("l/r loop #" + i);
       snowflakes[i].loopX(width); // pacman style
     }
 
     if (snowflakes[i].inBoundsY(height)) {
-      // println("throw #" + i + " back to the top");
-      snowflakes[i].backToTheTop(width, height);
+      // snowflakes[i].backToTheTop(width, height);
+      snowflakes[i] = spawn(true);
     }
   }
 
@@ -135,7 +141,8 @@ void draw() {
       if (debugOneLayer && z != debugOneLayerTarget)
         continue;
 
-      wind[z].fade();
+      if (windFades)
+        wind[z].fade();
     }
     lastUpdateMS = millis();
   }
@@ -147,12 +154,10 @@ void draw() {
         continue;
 
       if (random(0,1) > .4) {
-        // println("ADD WIND TO " + z);
         wind[z].addWindArea();
       }
 
       if (random(0,1) > .9) {
-        // println("INVERT AREA " + z);
         wind[z].mappy.filter(INVERT);
       }
     }
@@ -165,40 +170,55 @@ void draw() {
  * handle routing keys to the API
  */
 void keyPressed() {
-  
+  routeAPI(keyCode);
+}
+
+void routeAPI(int keyCode) {
+
+  println(keyCode);
+
   switch (keyCode){
 
+    case 16: // shift
+    break;
+
+    case 71: // g
+    gravityEnabled = !gravityEnabled;
+    break;
+
     case 38: // up
+    ambientWind[1]--;
     break;
-    
+
     case 40: // down
+    ambientWind[1]++;
     break;
-    
+
     case 37: // left
     ambientWind[0]--;
     break;
-    
+
     case 39: // right
     ambientWind[0]++;
     break;
-    
+
     case 27: // esc ?
     break;
 
   }
-  
+
 }
 
 /**
  * Factory method to get a new particle within normal parameters
- * @return particle 
- */ 
-particle spawn() {
-  float x = random(0 - 20, width + 20);
-  float y = random(0 - height, 0);
+ * @return particle
+ */
+particle spawn(boolean offscreen) {
+  float x = random(0, width);
+  float y = offscreen ? -40 : random(0, height);
   float z = fakeRandom(); // (0, maxZ);
 
-  float d = 30; // random(2, 10); // (float) fakeRandom();
+  float d = random(20, 40); // (float) fakeRandom();
   return new particle(x, y, z, d);
 }
 
@@ -297,6 +317,8 @@ class noisemap {
 
 class particle {
 
+  int id = 0;
+
   int zIndex = 1;
 
   float x = 0;
@@ -348,7 +370,7 @@ class particle {
   boolean inBoundsX(int w) {
     return this.x < w + d && this.x + d > 0;
   }
-  
+
   boolean inBoundsY(int h) {
     return this.y > h + d;
   }
@@ -377,7 +399,8 @@ class particle {
   void update() {
 
     // positive Y accel affected by gravity
-    this.accelY += this.gravity;
+    if (gravityEnabled)
+      this.accelY += this.gravity;
 
     // velocity affected by acceleration
     this.velX += this.accelX;
@@ -410,7 +433,7 @@ class particle {
 
   void draw() {
 
-    
+
     ellipseMode(RADIUS);
 
     float distanceMult = (maxZ - this.z) / maxZ;
@@ -425,9 +448,20 @@ class particle {
 
     if (debugVisible) {
 
+      // x/y vector type thing:
       fill(0);
       stroke(255);
       line(x, y, x+ this.velX * 2, y + this.velY * 2);
+
+      // draw a big red arrow pointing to the XY pos
+
+      fill(0);
+      stroke(255,0,0);
+      line(x, y + 100, x, y);
+      line(x + 30, y + 30, x, y);
+      line(x - 30, y + 30, x, y);
+
+      text(this.id, this.x, this.y);
 
     }
 
