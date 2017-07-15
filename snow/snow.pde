@@ -10,7 +10,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 5000;
+int particleCount = 1000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -20,12 +20,13 @@ noisemap[] wind = new noisemap[ maxZ + 1 ];
 
 boolean windVisible     = false;
 boolean debugVisible    = false;
+boolean arrowsVisible   = false;
 boolean debugOneLayer   = false;
 int debugOneLayerTarget = 1;
 
 boolean gravityEnabled  = true;
 
-boolean windFades       = false;
+boolean windFades       = true;
 float windEffect        = 0.25f;
 long lastChangeMS       = 0;
 long lastUpdateMS       = 0;
@@ -41,9 +42,13 @@ float[] ambientWind     = {0,0,0};
 PImage snowflake;
 PGraphics snowflakeSource;
 
+PGraphics backgroundFill;
+boolean shouldUpdateBackground = false;
+int[] lastColor = {0,0,0,255};
+
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
-  // 5,5,5,5,5,5,5,5,5
+  // 5,5,5,5,5,5,5,5,5,
   4,4,4,4,4,4,
   3,3,3,3,
   2,2,
@@ -52,6 +57,32 @@ int[] fakeWeightedDistances = {
 
 int fakeRandom() {
   return fakeWeightedDistances[(int) random(0, fakeWeightedDistances.length)];
+}
+
+void updateBackgroundFill(int r, int g, int b, int alpha) {
+
+  if (lastColor[0] == r &&  lastColor[1] == g && lastColor[2] == b && lastColor[3] == alpha) {
+    // don't do free work
+    return;
+  }
+
+  lastColor[0] = r;
+  lastColor[1] = g;
+  lastColor[2] = b;
+  lastColor[3] = alpha;
+
+  drawBackgroundFill();
+
+}
+
+void drawBackgroundFill() {
+
+  backgroundFill.beginDraw();
+  backgroundFill.noStroke();
+  backgroundFill.fill(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
+  backgroundFill.rect(0,0,backgroundFill.width,backgroundFill.height);
+  backgroundFill.endDraw();
+
 }
 
 void setup() {
@@ -76,13 +107,22 @@ void setup() {
   lastChangeMS = millis();
   lastUpdateMS = millis();
 
+  backgroundFill = createGraphics(width, height);
+  drawBackgroundFill();
+
+  background(0);
+
 //addWindArea
 }
 
 void draw() {
 
   // clear the last frame
-  background(0);
+  // background(0);
+  // or use bg canvas buffer
+
+  imageMode(CORNER);
+  image(backgroundFill, 0, 0);
 
   // draw the noisemap for now
   if (windVisible) {
@@ -215,7 +255,7 @@ void routeAPI(int keyCode) {
  */
 particle spawn(boolean offscreen) {
   float x = random(0, width);
-  float y = offscreen ? -40 : random(0, height);
+  float y = offscreen ? - snowflake.height : random(0, height);
   float z = fakeRandom(); // (0, maxZ);
 
   float d = random(20, 40); // (float) fakeRandom();
@@ -452,6 +492,10 @@ class particle {
       fill(0);
       stroke(255);
       line(x, y, x+ this.velX * 2, y + this.velY * 2);
+
+    }
+
+    if (arrowsVisible) {
 
       // draw a big red arrow pointing to the XY pos
 
