@@ -44,7 +44,7 @@ PGraphics snowflakeSource;
 
 PGraphics backgroundFill;
 boolean shouldUpdateBackground = false;
-int[] lastColor = {0,0,0,255};
+int[] lastColor = {0,0,90,150};
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
@@ -77,11 +77,36 @@ void updateBackgroundFill(int r, int g, int b, int alpha) {
 
 void drawBackgroundFill() {
 
+// void setGradient(int x, int y, float w, float h, color c1, color c2, int axis ) {
+
+  noFill();
+
+  int x = 0;
+  int y = 0;
+  int w = backgroundFill.width;
+  int h = backgroundFill.height;
+
+  color c1 = color(0,0,0,255);
+  color c2 = color(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
+
+  for (int i = y; i <= y+h; i++) {
+    float inter = map(i, y, y+h, 0, 1);
+    color c = lerpColor(c1, c2, inter);
+    backgroundFill.beginDraw();
+    backgroundFill.stroke(c);
+    backgroundFill.line(x, i, x+w, i);
+    backgroundFill.endDraw();
+  }
+
+  /*
+  return;
+
   backgroundFill.beginDraw();
   backgroundFill.noStroke();
   backgroundFill.fill(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
   backgroundFill.rect(0,0,backgroundFill.width,backgroundFill.height);
   backgroundFill.endDraw();
+  */
 
 }
 
