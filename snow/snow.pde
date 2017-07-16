@@ -10,7 +10,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 1000;
+int particleCount = 750;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -44,7 +44,7 @@ PGraphics snowflakeSource;
 
 PGraphics backgroundFill;
 boolean shouldUpdateBackground = false;
-int[] lastColor = {0,0,90,150};
+int[] lastColor = {128,50,255,250};
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
@@ -269,6 +269,27 @@ void routeAPI(int keyCode) {
 
     case 27: // esc ?
     break;
+
+    case 81: // Q
+    updateBackgroundFill(255,0,0,10); 
+    break;
+
+    case 87: // W
+    updateBackgroundFill(0,0,0,255);
+    break;
+
+    case 69: // E
+    updateBackgroundFill(0,50,100,90);
+    break;
+
+    case 82: // R
+    break;
+
+    case 84: // T
+    break;
+
+    case 89: // Y
+    break; 
 
   }
 
