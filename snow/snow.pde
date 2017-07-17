@@ -1,4 +1,3 @@
-
 /***
  * Processing Snowfall Simulation
  *
@@ -10,7 +9,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 750;
+int particleCount = 1000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -21,6 +20,8 @@ noisemap[] wind = new noisemap[ maxZ + 1 ];
 boolean windVisible     = false;
 boolean debugVisible    = false;
 boolean arrowsVisible   = false;
+boolean lineSequenceVisible = false;
+
 boolean debugOneLayer   = false;
 int debugOneLayerTarget = 1;
 
@@ -42,9 +43,9 @@ float[] ambientWind     = {0,0,0};
 PImage snowflake;
 PGraphics snowflakeSource;
 
-PGraphics backgroundFill;
-boolean shouldUpdateBackground = false;
-int[] lastColor = {128,50,255,250};
+int bgFillCount         = 1;
+filler[] bgFill         = new filler[ bgFillCount ];
+int selectedBgFill      = 0;
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
@@ -59,55 +60,8 @@ int fakeRandom() {
   return fakeWeightedDistances[(int) random(0, fakeWeightedDistances.length)];
 }
 
-void updateBackgroundFill(int r, int g, int b, int alpha) {
-
-  if (lastColor[0] == r &&  lastColor[1] == g && lastColor[2] == b && lastColor[3] == alpha) {
-    // don't do free work
-    return;
-  }
-
-  lastColor[0] = r;
-  lastColor[1] = g;
-  lastColor[2] = b;
-  lastColor[3] = alpha;
-
-  drawBackgroundFill();
-
-}
-
-void drawBackgroundFill() {
-
-// void setGradient(int x, int y, float w, float h, color c1, color c2, int axis ) {
-
-  noFill();
-
-  int x = 0;
-  int y = 0;
-  int w = backgroundFill.width;
-  int h = backgroundFill.height;
-
-  color c1 = color(0,0,0,255);
-  color c2 = color(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
-
-  for (int i = y; i <= y+h; i++) {
-    float inter = map(i, y, y+h, 0, 1);
-    color c = lerpColor(c1, c2, inter);
-    backgroundFill.beginDraw();
-    backgroundFill.stroke(c);
-    backgroundFill.line(x, i, x+w, i);
-    backgroundFill.endDraw();
-  }
-
-  /*
-  return;
-
-  backgroundFill.beginDraw();
-  backgroundFill.noStroke();
-  backgroundFill.fill(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
-  backgroundFill.rect(0,0,backgroundFill.width,backgroundFill.height);
-  backgroundFill.endDraw();
-  */
-
+float randomFloat() {
+  return random(1, maxZ);
 }
 
 void setup() {
@@ -124,7 +78,7 @@ void setup() {
     wind[z] = new noisemap(width, height, 32);
   }
 
-  for(int i =0; i < particleCount; i++) {
+  for(int i = 0; i < particleCount; i++) {
     snowflakes[i] = spawn(false);
     snowflakes[i].id = i;
   }
@@ -132,12 +86,23 @@ void setup() {
   lastChangeMS = millis();
   lastUpdateMS = millis();
 
-  backgroundFill = createGraphics(width, height);
-  drawBackgroundFill();
+  long startDrawMS = millis();
+  long prevDrawMS = startDrawMS;
+
+  for(int f = 0; f < bgFillCount; f++) {
+    prevDrawMS = millis();
+    bgFill[f] = new filler(width, height);
+    bgFill[f].updateBackgroundFill(100,127,255,255);
+    // bgFill[f].randomize();
+    // bgFill[f].drawBackgroundFill();
+    println((millis() - startDrawMS) + " ms elapsed");
+    println((millis() - prevDrawMS) + " ms for this round");
+  }
+
+  println((millis() - startDrawMS) + " ms elapsed");
 
   background(0);
 
-//addWindArea
 }
 
 void draw() {
@@ -147,8 +112,10 @@ void draw() {
   // or use bg canvas buffer
 
   imageMode(CORNER);
-  image(backgroundFill, 0, 0);
+  tint(255);
+  image(bgFill[selectedBgFill].getFill(), 0, 0);
 
+  tint(255);
   // draw the noisemap for now
   if (windVisible) {
 
@@ -189,6 +156,11 @@ void draw() {
     snowflakes[i].update();
 
     snowflakes[i].draw();
+
+    if (lineSequenceVisible && i > 0 && i < particleCount - 1) {
+      stroke(255,0,0);
+      line(snowflakes[i - 1].x, snowflakes[i - 1].y, snowflakes[i].x, snowflakes[i].y);
+    }
 
     if (!snowflakes[i].inBoundsX(width)) {
       snowflakes[i].loopX(width); // pacman style
@@ -271,25 +243,28 @@ void routeAPI(int keyCode) {
     break;
 
     case 81: // Q
-    updateBackgroundFill(255,0,0,10); 
+    selectedBgFill = selectedBgFill - 1 >= 0 ? selectedBgFill - 1 : 0;
     break;
 
     case 87: // W
-    updateBackgroundFill(0,0,0,255);
+    selectedBgFill = selectedBgFill + 1 < bgFill.length ? selectedBgFill + 1 : bgFill.length - 1;
     break;
 
     case 69: // E
-    updateBackgroundFill(0,50,100,90);
+    lineSequenceVisible = !lineSequenceVisible;
     break;
 
     case 82: // R
+    debugVisible = !debugVisible;
     break;
 
     case 84: // T
+    windVisible = !windVisible;
     break;
 
     case 89: // Y
-    break; 
+    arrowsVisible = !arrowsVisible;
+    break;
 
   }
 
@@ -310,7 +285,7 @@ particle spawn(boolean offscreen) {
 
 class noisemap {
 
-  PImage mappy;
+  PGraphics mappy;
   PImage fader;
 
   int scale = 1;
@@ -320,7 +295,8 @@ class noisemap {
     this.scale = scale;
 
     // integer division - get xpos/ypos in our scale, eg: 1->8 1->16, whatev
-    mappy = createImage(mapWidth / scale, mapHeight / scale, RGB);
+    // mappy = createImage(mapWidth / scale, mapHeight / scale, RGB);
+    mappy = createGraphics(mapWidth / scale, mapHeight / scale);
     fader = createImage(mapWidth / scale, mapHeight / scale, ARGB);
 
     fillFader();
@@ -340,11 +316,15 @@ class noisemap {
 
   void fillMap() {
 
+    mappy.beginDraw();
+
     for(int x = 0; x < mappy.width; x++) {
       for(int y = 0; y < mappy.height; y++) {
         mappy.set(x, y, color(128,128,128)); // ,0));
       }
     }
+
+    mappy.endDraw();
 
     // add some wind!
     for(int i = 0; i < 10; i++) {
@@ -556,4 +536,70 @@ class particle {
     }
 
   }
+}
+
+class filler {
+
+  PGraphics backgroundFill;
+  boolean shouldUpdateBackground = false;
+  int[] lastColor = {128,50,255,250};
+
+  filler(int w, int h) {
+    backgroundFill = createGraphics(w, h);
+  }
+
+  PGraphics getFill() {
+    return backgroundFill;
+  }
+
+  void randomize() {
+    updateBackgroundFill(
+      (int) random(0,255),
+      (int) random(0,255),
+      (int) random(0,255),
+      (int) random(0,255)
+    );
+  }
+
+  void updateBackgroundFill(int r, int g, int b, int alpha) {
+
+    if (lastColor[0] == r &&  lastColor[1] == g && lastColor[2] == b && lastColor[3] == alpha) {
+      // don't do free work
+      return;
+    }
+
+    lastColor[0] = r;
+    lastColor[1] = g;
+    lastColor[2] = b;
+    lastColor[3] = alpha;
+
+    drawBackgroundFill();
+
+  }
+
+  void drawBackgroundFill() {
+
+  // void setGradient(int x, int y, float w, float h, color c1, color c2, int axis ) {
+
+    noFill();
+
+    int x = 0;
+    int y = 0;
+    int w = backgroundFill.width;
+    int h = backgroundFill.height;
+
+    color c1 = color(0,0,0,255);
+    color c2 = color(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
+
+    for (int i = y; i <= y+h; i++) {
+      float inter = map(i, y, y+h, 0, 1);
+      color c = lerpColor(c1, c2, inter);
+      backgroundFill.beginDraw();
+      backgroundFill.stroke(c);
+      backgroundFill.line(x, i, x+w, i);
+      backgroundFill.endDraw();
+    }
+
+  }
+
 }
