@@ -13,7 +13,8 @@ int particleCount = 250;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
-int maxZ = 5;
+// int maxZ = 5;
+int maxZ = 2;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[ maxZ + 1 ];
 
