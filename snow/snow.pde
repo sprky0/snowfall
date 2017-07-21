@@ -9,12 +9,11 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 250;
+int particleCount = 100;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
-// int maxZ = 5;
-int maxZ = 2;
+int maxZ = 5;
 // this is used to generate wind interference to accelerate the particles as they move relative to the x,y noisemap
 noisemap[] wind = new noisemap[ maxZ + 1 ];
 
@@ -69,6 +68,7 @@ void setup() {
 
   frameRate(24);
   // size(640, 480);
+  noCursor();
   fullScreen();
 
   //snowflake = loadImage("snowflake1.png");
