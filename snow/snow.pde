@@ -107,6 +107,8 @@ void setup() {
 
 void draw() {
 
+  noCursor();
+  
   // clear the last frame
   // background(0);
   // or use bg canvas buffer
