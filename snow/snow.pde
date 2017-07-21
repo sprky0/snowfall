@@ -9,7 +9,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 100;
+int particleCount = 1000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -111,14 +111,14 @@ void draw() {
   noCursor();
   
   // clear the last frame
-  // background(0);
+  background(0);
   // or use bg canvas buffer
 
   imageMode(CORNER);
-  tint(255);
-  image(bgFill[selectedBgFill].getFill(), 0, 0);
+  // tint(255);
+  // image(bgFill[selectedBgFill].getFill(), 0, 0);
 
-  tint(255);
+  // tint(255);
   // draw the noisemap for now
   if (windVisible) {
 
