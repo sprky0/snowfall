@@ -7,10 +7,9 @@
 
 void setup() {
 
-  size(1920, 1080, P3D);
+  fullScreen(P3D);
+  // size(1920, 1080, P3D);
   frameRate(60);
-
-  //fullScreen(P3D);
 
   noCursor();
 
