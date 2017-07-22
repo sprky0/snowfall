@@ -631,3 +631,5 @@ class filler {
       backgroundFill.endDraw();
     }
   }
+
+}
