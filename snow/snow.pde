@@ -1,4 +1,4 @@
-/***
+ /***
  * Processing Snowfall Simulation
  *
  * @author Avery Brooks
@@ -9,7 +9,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 1000;
+int particleCount = 350;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -20,12 +20,16 @@ noisemap[] wind = new noisemap[ maxZ + 1 ];
 boolean windVisible     = false;
 boolean debugVisible    = false;
 boolean arrowsVisible   = false;
-boolean lineSequenceVisible = false;
+boolean lineSeqVisible  = false;
+boolean framerateVisible = false;
 
 boolean debugOneLayer   = false;
 int debugOneLayerTarget = 1;
 
 boolean gravityEnabled  = true;
+
+boolean calculateAccel  = true;
+int accelFrameCounter   = 0;
 
 boolean windFades       = true;
 float windEffect        = 0.25f;
@@ -38,21 +42,21 @@ long lastMapMS          = 0;
 long mapChangeRateMS    = windChangeRateMS;
 
 // wind which sticks around and is applied to every particle in the system relative {x,y,z}
-float[] ambientWind     = {0,0,0};
+float[] ambientWind     = {0, 0, 0};
 
 PImage snowflake;
 PGraphics snowflakeSource;
 
-int bgFillCount         = 1;
+int bgFillCount         = 3;
 filler[] bgFill         = new filler[ bgFillCount ];
 int selectedBgFill      = 0;
 
 // this is used to determine the relative population of the fields
 int[] fakeWeightedDistances = {
   // 5,5,5,5,5,5,5,5,5,
-  4,4,4,4,4,4,
-  3,3,3,3,
-  2,2,
+  4, 4, 4, 4, 4, 4, 
+  3, 3, 3, 3, 
+  2, 2, 
   1
 };
 
@@ -66,20 +70,23 @@ float randomFloat() {
 
 void setup() {
 
-  frameRate(24);
-  // size(640, 480);
+
+  size(500, 500, P3D);
+  frameRate(60);
+
+  //fullScreen(P3D);
+
   noCursor();
-  fullScreen();
 
   //snowflake = loadImage("snowflake1.png");
-  // snowflake = loadImage("snowflake2.png");
+  //snowflake = loadImage("snowflake2.png");
   snowflake = loadImage("snowflake3.png");
 
-  for(int z = 1; z <= maxZ; z++) {
+  for (int z = 1; z <= maxZ; z++) {
     wind[z] = new noisemap(width, height, 32);
   }
 
-  for(int i = 0; i < particleCount; i++) {
+  for (int i = 0; i < particleCount; i++) {
     snowflakes[i] = spawn(false);
     snowflakes[i].id = i;
   }
@@ -90,10 +97,10 @@ void setup() {
   long startDrawMS = millis();
   long prevDrawMS = startDrawMS;
 
-  for(int f = 0; f < bgFillCount; f++) {
+  for (int f = 0; f < bgFillCount; f++) {
     prevDrawMS = millis();
     bgFill[f] = new filler(width, height);
-    bgFill[f].updateBackgroundFill(100,127,255,255);
+    bgFill[f].updateBackgroundFill(100, 127, 255, 255);
     // bgFill[f].randomize();
     // bgFill[f].drawBackgroundFill();
     println((millis() - startDrawMS) + " ms elapsed");
@@ -103,18 +110,26 @@ void setup() {
   println((millis() - startDrawMS) + " ms elapsed");
 
   background(0);
-
 }
 
 void draw() {
 
-  noCursor();
-  
-  // clear the last frame
-  background(0);
-  // or use bg canvas buffer
+  //turn on and off accel calc
+  //accelFrameCounter++;
+  //if (accelFrameCounter % 30 == 0) {
+  //  accelFrameCounter = 0;
+  //  calculateAccel = !calculateAccel;
+  //}
 
-  imageMode(CORNER);
+  noCursor();
+
+  // clear the last frame
+  background(0,10,100);
+  // or use bg canvas buffer
+  // fill(0);
+  // rect(0, 0, width, height);
+
+  //imageMode(CORNER);
   // tint(255);
   // image(bgFill[selectedBgFill].getFill(), 0, 0);
 
@@ -124,7 +139,7 @@ void draw() {
 
     imageMode(CORNER);
 
-    for(int z = 1; z < maxZ; z++) {
+    for (int z = 1; z < maxZ; z++) {
 
       if (debugOneLayer && z != debugOneLayerTarget)
         continue;
@@ -136,32 +151,36 @@ void draw() {
       visibleMap = visibleMap + 1 <= maxZ ? visibleMap + 1 : 1;
       lastMapMS = millis();
     }
-
   }
 
   //  draw the background gradient
 
   // handle all physics and draw the snowflakes
   // for(particle snowflake : snowflakes) {
-  for(int i = 0; i < particleCount; i++) {
+  for (int i = 0; i < particleCount; i++) {
 
     if (debugOneLayer && snowflakes[i].zIndex != debugOneLayerTarget)
       continue;
 
-    float[] accel = wind[snowflakes[i].zIndex].getXY((int) snowflakes[i].x, (int) snowflakes[i].y);
-    // particle.changeAccel( wind.getXY((int) snowflakes[i].x, (int) snowflakes[i].y );
+    if (calculateAccel) {
 
-    float xF = (accel[0] + ambientWind[0]) * windEffect;
-    float yF = (accel[1] + ambientWind[1]) * windEffect;
-    float zF = (accel[2] + ambientWind[2]) * windEffect;
+      float[] accel = wind[snowflakes[i].zIndex].getXY((int) snowflakes[i].x, (int) snowflakes[i].y);
+      // particle.changeAccel( wind.getXY((int) snowflakes[i].x, (int) snowflakes[i].y );
+  
+      float xF = (accel[0] + ambientWind[0]) * windEffect;
+      float yF = (accel[1] + ambientWind[1]) * windEffect;
+      float zF = (accel[2] + ambientWind[2]) * windEffect;
+  
+      snowflakes[i].changeAcceleration( xF, yF, zF );
 
-    snowflakes[i].changeAcceleration( xF, yF, zF );
+    }
+      
     snowflakes[i].update();
 
     snowflakes[i].draw();
 
-    if (lineSequenceVisible && i > 0 && i < particleCount - 1) {
-      stroke(255,0,0);
+    if (lineSeqVisible && i > 0 && i < particleCount - 1) {
+      stroke(255, 0, 0);
       line(snowflakes[i - 1].x, snowflakes[i - 1].y, snowflakes[i].x, snowflakes[i].y);
     }
 
@@ -170,13 +189,13 @@ void draw() {
     }
 
     if (snowflakes[i].inBoundsY(height)) {
-      // snowflakes[i].backToTheTop(width, height);
-      snowflakes[i] = spawn(true);
+      snowflakes[i].backToTheTop(width, height);
+      // snowflakes[i] = spawn(true);
     }
   }
 
   if (millis() - lastUpdateMS > windUpdateRateMS) {
-    for(int z = 1; z < maxZ; z++) {
+    for (int z = 1; z < maxZ; z++) {
 
       if (debugOneLayer && z != debugOneLayerTarget)
         continue;
@@ -188,22 +207,33 @@ void draw() {
   }
 
   if (millis() - lastChangeMS > windChangeRateMS) {
-    for(int z = 1; z < maxZ; z++) {
+    for (int z = 1; z < maxZ; z++) {
 
       if (debugOneLayer && z != debugOneLayerTarget)
         continue;
 
-      if (random(0,1) > .4) {
+      if (random(0, 1) > .4) {
         wind[z].addWindArea();
       }
 
-      if (random(0,1) > .9) {
+      if (random(0, 1) > .9) {
         wind[z].mappy.filter(INVERT);
       }
     }
     lastChangeMS = millis();
   }
 
+  if (framerateVisible) {
+    fill(255);
+    String fr = String.valueOf(frameRate);
+    rect(0, 0, textWidth(fr), 200);
+    // textAlign(CORNER);
+    fill(0);
+    text(fr, 10, 10);
+  
+    fill(calculateAccel ? 255 : 0);
+    rect(0,190,20,20);
+  }
 }
 
 /**
@@ -217,60 +247,62 @@ void routeAPI(int keyCode) {
 
   println(keyCode);
 
-  switch (keyCode){
+  switch (keyCode) {
 
-    case 16: // shift
+  case 16: // shift
     break;
 
-    case 71: // g
+  case 70: // f
+    framerateVisible = !framerateVisible;
+    break;
+
+  case 71: // g
     gravityEnabled = !gravityEnabled;
     break;
 
-    case 38: // up
+  case 38: // up
     ambientWind[1]--;
     break;
 
-    case 40: // down
+  case 40: // down
     ambientWind[1]++;
     break;
 
-    case 37: // left
+  case 37: // left
     ambientWind[0]--;
     break;
 
-    case 39: // right
+  case 39: // right
     ambientWind[0]++;
     break;
 
-    case 27: // esc ?
+  case 27: // esc ?
     break;
 
-    case 81: // Q
+  case 81: // Q
     selectedBgFill = selectedBgFill - 1 >= 0 ? selectedBgFill - 1 : 0;
     break;
 
-    case 87: // W
+  case 87: // W
     selectedBgFill = selectedBgFill + 1 < bgFill.length ? selectedBgFill + 1 : bgFill.length - 1;
     break;
 
-    case 69: // E
-    lineSequenceVisible = !lineSequenceVisible;
+  case 69: // E
+    lineSeqVisible = !lineSeqVisible;
     break;
 
-    case 82: // R
+  case 82: // R
     debugVisible = !debugVisible;
     break;
 
-    case 84: // T
+  case 84: // T
     windVisible = !windVisible;
     break;
 
-    case 89: // Y
+  case 89: // Y
     arrowsVisible = !arrowsVisible;
     break;
-
   }
-
 }
 
 /**
@@ -304,36 +336,33 @@ class noisemap {
 
     fillFader();
     fillMap();
-
   }
 
   void fillFader() {
 
-    for(int x = 0; x < fader.width; x++) {
-      for(int y = 0; y < fader.height; y++) {
-        fader.set(x, y, color(128,128,128,13)); // roughly 5% opacity
+    for (int x = 0; x < fader.width; x++) {
+      for (int y = 0; y < fader.height; y++) {
+        fader.set(x, y, color(128, 128, 128, 13)); // roughly 5% opacity
       }
     }
-
   }
 
   void fillMap() {
 
     mappy.beginDraw();
 
-    for(int x = 0; x < mappy.width; x++) {
-      for(int y = 0; y < mappy.height; y++) {
-        mappy.set(x, y, color(128,128,128)); // ,0));
+    for (int x = 0; x < mappy.width; x++) {
+      for (int y = 0; y < mappy.height; y++) {
+        mappy.set(x, y, color(128, 128, 128)); // ,0));
       }
     }
 
     mappy.endDraw();
 
     // add some wind!
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
       addWindArea();
     }
-
   }
 
   void fade() {
@@ -347,13 +376,19 @@ class noisemap {
     int endX = (int) random(startX, mappy.width);
     int endY = (int) random(startY, mappy.height);
 
-    int colorR = color(random(0,255), random(0,255), 128);
+    int colorR = color(random(0, 255), random(0, 255), 128);
 
-    for(int x = startX; x < endX; x++) {
-      for(int y = startY; y < endY; y++) {
-        mappy.set(x, y, colorR);
-      }
-    }
+    mappy.beginDraw();
+    mappy.fill(colorR);
+    mappy.ellipseMode(CORNER);
+    mappy.ellipse(startX, startY, endX, endY);
+    mappy.endDraw();
+
+    //for(int x = startX; x < endX; x++) {
+    //  for(int y = startY; y < endY; y++) {
+    //    mappy.set(x, y, colorR);
+    //  }
+    //}
   }
 
   float[] getXY(int x, int y) {
@@ -381,7 +416,6 @@ class noisemap {
 
     return colorAtXY;
   }
-
 }
 
 class particle {
@@ -417,7 +451,6 @@ class particle {
     this.d = d;
 
     this.zIndex = (int) z; // relative to windMap needs int, fuck it (OR getZ() which handles range and then we can deal with out of bounds and whatever ->
-
   }
 
   void backToTheTop(int w, int h) {
@@ -450,7 +483,7 @@ class particle {
       return 0;
 
     if (current < 0 && current < -terminal)
-        return -terminal;
+      return -terminal;
 
     if (current > terminal)
       return terminal;
@@ -497,7 +530,6 @@ class particle {
     this.x += this.velX * distanceMult;
     this.y += this.velY * distanceMult;
     // this.z += this.velZ;
-
   }
 
   void draw() {
@@ -521,7 +553,6 @@ class particle {
       fill(0);
       stroke(255);
       line(x, y, x+ this.velX * 2, y + this.velY * 2);
-
     }
 
     if (arrowsVisible) {
@@ -529,15 +560,13 @@ class particle {
       // draw a big red arrow pointing to the XY pos
 
       fill(0);
-      stroke(255,0,0);
+      stroke(255, 0, 0);
       line(x, y + 100, x, y);
       line(x + 30, y + 30, x, y);
       line(x - 30, y + 30, x, y);
 
       text(this.id, this.x, this.y);
-
     }
-
   }
 }
 
@@ -545,7 +574,7 @@ class filler {
 
   PGraphics backgroundFill;
   boolean shouldUpdateBackground = false;
-  int[] lastColor = {128,50,255,250};
+  int[] lastColor = {128, 50, 255, 250};
 
   filler(int w, int h) {
     backgroundFill = createGraphics(w, h);
@@ -557,11 +586,11 @@ class filler {
 
   void randomize() {
     updateBackgroundFill(
-      (int) random(0,255),
-      (int) random(0,255),
-      (int) random(0,255),
-      (int) random(0,255)
-    );
+      (int) random(0, 255), 
+      (int) random(0, 255), 
+      (int) random(0, 255), 
+      (int) random(0, 255)
+      );
   }
 
   void updateBackgroundFill(int r, int g, int b, int alpha) {
@@ -577,12 +606,11 @@ class filler {
     lastColor[3] = alpha;
 
     drawBackgroundFill();
-
   }
 
   void drawBackgroundFill() {
 
-  // void setGradient(int x, int y, float w, float h, color c1, color c2, int axis ) {
+    // void setGradient(int x, int y, float w, float h, color c1, color c2, int axis ) {
 
     noFill();
 
@@ -591,8 +619,8 @@ class filler {
     int w = backgroundFill.width;
     int h = backgroundFill.height;
 
-    color c1 = color(0,0,0,255);
-    color c2 = color(lastColor[0],lastColor[1],lastColor[2],lastColor[3]);
+    color c1 = color(0, 0, 0, 255);
+    color c2 = color(lastColor[0], lastColor[1], lastColor[2], lastColor[3]);
 
     for (int i = y; i <= y+h; i++) {
       float inter = map(i, y, y+h, 0, 1);
@@ -602,7 +630,5 @@ class filler {
       backgroundFill.line(x, i, x+w, i);
       backgroundFill.endDraw();
     }
-
   }
-
 }
