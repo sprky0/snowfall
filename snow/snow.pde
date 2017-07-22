@@ -47,7 +47,7 @@ float[] ambientWind     = {0, 0, 0};
 PImage snowflake;
 PGraphics snowflakeSource;
 
-int bgFillCount         = 3;
+int bgFillCount         = 1;
 filler[] bgFill         = new filler[ bgFillCount ];
 int selectedBgFill      = 0;
 
