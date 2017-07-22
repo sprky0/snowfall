@@ -71,7 +71,7 @@ float randomFloat() {
 void setup() {
 
 
-  size(500, 500, P3D);
+  size(1920, 1080, P3D);
   frameRate(60);
 
   //fullScreen(P3D);
