@@ -1,4 +1,4 @@
- /***
+/***
  * Processing Snowfall Simulation
  *
  * @author Avery Brooks
