@@ -7,8 +7,8 @@
 
 void setup() {
 
-  // fullScreen(P3D);
-  size(100, 500, P3D);
+  fullScreen(P3D);
+  // size(100, 500, P3D);
   frameRate(60);
   noCursor();
 	background(0);
