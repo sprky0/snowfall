@@ -9,7 +9,7 @@
 // import oscP5;
 // https://www.youtube.com/watch?v=yamiiGk6aSs&feature=em-share_video_user
 
-int particleCount = 1000;
+int particleCount = 5000;
 particle[] snowflakes = new particle[particleCount];
 
 // how many levels of wind can we have? (same as levels of snow field distances)
@@ -43,7 +43,7 @@ float[] ambientWind     = {0,0,0};
 PImage snowflake;
 PGraphics snowflakeSource;
 
-int bgFillCount         = 1;
+int bgFillCount         = 3;
 filler[] bgFill         = new filler[ bgFillCount ];
 int selectedBgFill      = 0;
 
@@ -67,9 +67,9 @@ float randomFloat() {
 void setup() {
 
   frameRate(24);
-  // size(640, 480);
+  size(640, 480,P3D);
   noCursor();
-  fullScreen();
+  // fullScreen(P3D);
 
   //snowflake = loadImage("snowflake1.png");
   // snowflake = loadImage("snowflake2.png");
@@ -111,12 +111,12 @@ void draw() {
   noCursor();
   
   // clear the last frame
-  background(0);
+  // background(0);
   // or use bg canvas buffer
 
   imageMode(CORNER);
   // tint(255);
-  // image(bgFill[selectedBgFill].getFill(), 0, 0);
+  image(bgFill[selectedBgFill].getFill(), 0, 0);
 
   // tint(255);
   // draw the noisemap for now
